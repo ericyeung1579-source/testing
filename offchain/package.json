@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "axios": "^1.14.0",
+    "ethers": "^5.8.0",
+    "express": "^5.2.1",
+    "snarkjs": "^0.7.6"
+  }
+}
