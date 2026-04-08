@@ -70,7 +70,7 @@ npx hardhat compile
 
 5. **Generate the ZK proof (if not already present)**:
 ```bash
-powershell scripts/2-prove/generate_proof.ps1 42 123456789   # Windows
+powershell scripts/2-prove/generate_proof.ps1 42 123456789   # Windows, Only for demo: Asset ID:42 Secret:123456789
 ```
 
 **Running the Cross‑Chain Bridge (Local Testnet)**
@@ -109,7 +109,7 @@ node validator.js   # uses first Hardhat account private key
 Terminal 5 – Validator #2:
 ```bash
 cd offchain
-node validator.js 
+node validator2.js 
 ```
 Terminal 6 – Validator #3:
 ```bash
