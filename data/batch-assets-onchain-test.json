@@ -1,0 +1,9 @@
+{
+  "assets": [
+    { "assetId": "8001", "secret": "123456789" },
+    { "assetId": "8002", "secret": "987654321" },
+    { "assetId": "8003", "secret": "111111111" },
+    { "assetId": "8004", "secret": "222222222" },
+    { "assetId": "8005", "secret": "333333333" }
+  ]
+}

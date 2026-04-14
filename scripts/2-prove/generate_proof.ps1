@@ -57,6 +57,10 @@ try {
     }
     
     Write-Host "✓ Proof ready: proof.json" -ForegroundColor Green
+    
+    Write-Host "`n--- Proof Content (proof.json) ---" -ForegroundColor Cyan
+    Get-Content proof.json
+    Write-Host "------------------------------------`n" -ForegroundColor Cyan
 } finally {
     Pop-Location
 }

@@ -2,6 +2,10 @@
   "name": "demo2",
   "version": "1.0.0",
   "type": "module",
+  "scripts": {
+    "analyze:costs": "node scripts/utils/cost-analyzer.mjs",
+    "analyze:costs:ts": "ts-node scripts/utils/cost-analyzer.ts"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^4.0.3",
     "@nomicfoundation/hardhat-ignition": "^3.0.5",
@@ -14,11 +18,14 @@
     "forge-std": "github:foundry-rs/forge-std#v1.9.4",
     "hardhat": "^3.0.14",
     "typescript": "~5.8.0",
-    "viem": "^2.39.0"
+    "viem": "^2.47.6"
   },
   "dependencies": {
     "circomlib": "^2.0.5",
     "circomlibjs": "^0.1.7",
-    "snarkjs": "^0.7.4"
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "snarkjs": "^0.7.4",
+    "web3": "^4.16.0"
   }
 }

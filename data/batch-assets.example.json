@@ -1,0 +1,19 @@
+{
+  "assets": [
+    {
+      "assetId": "42",
+      "secret": "123456789",
+      "commitment": ""
+    },
+    {
+      "assetId": "43",
+      "secret": "987654321",
+      "commitment": ""
+    },
+    {
+      "assetId": "44",
+      "secret": "555666777",
+      "commitment": ""
+    }
+  ]
+}

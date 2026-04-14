@@ -1,8 +1,13 @@
-import { ethers } from "ethers";
+import { createPublicClient, createWalletClient, http, getContract } from "viem";
+import { hardhat } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
 import * as fs from "fs";
 import * as path from "path";
 import { spawn } from "child_process";
 import { loadDeploymentAddresses, formatTokenAmount, printHeader, printSuccess } from "../utils/helpers.js";
+
+const PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+const account = privateKeyToAccount(PRIVATE_KEY);
 
 async function runCommand(command: string, args: string[] = [], cwd: string = process.cwd()): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -49,13 +54,31 @@ async function main() {
     console.log("\n\n📊 STEP 5: Checking Results...");
     console.log("-".repeat(60));
     
-    const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
-    const signer = await provider.getSigner();
+    const publicClient = createPublicClient({
+      chain: hardhat,
+      transport: http("http://127.0.0.1:8545"),
+    });
+
+    const walletClient = createWalletClient({
+      chain: hardhat,
+      transport: http("http://127.0.0.1:8545"),
+      account,
+    });
     
     const tokenJson = JSON.parse(fs.readFileSync("artifacts/contracts/AssetToken.sol/AssetToken.json", "utf-8"));
-    const token = new ethers.Contract(addresses.token, tokenJson.abi, signer);
+    const token = getContract({
+      address: addresses.token as `0x${string}`,
+      abi: tokenJson.abi,
+      client: { public: publicClient, wallet: walletClient },
+    });
     
-    const balance = await token.balanceOf(await signer.getAddress());
+    const userAddress = account.address;
+    const balance = (await publicClient.readContract({
+      address: addresses.token as `0x${string}`,
+      abi: tokenJson.abi,
+      functionName: "balanceOf",
+      args: [userAddress],
+    })) as bigint;
     const formattedBalance = formatTokenAmount(balance);
     console.log(`\nUser balance: ${formattedBalance} ASSET tokens`);
     printSuccess("Tokens successfully minted!");

@@ -44,7 +44,7 @@ Write-Host ""
 # Start Hardhat node
 Write-Host "Starting Hardhat node..." -ForegroundColor Yellow
 $nodeJob = Start-Job -ScriptBlock {
-    cd d:\demo2
+    cd "$using:PSScriptRoot\.."
     npx hardhat node 2>&1 | Out-Null
 }
 

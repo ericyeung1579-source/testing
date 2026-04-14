@@ -1,7 +1,7 @@
 pragma circom 2.2.0;
 
 
-include "circomlib/circuits/mimcsponge.circom";
+include "circomlib/circuits/poseidon.circom";
 
 
 template AssetOwnership() {
@@ -11,10 +11,10 @@ template AssetOwnership() {
     signal input ownerPublicKey;
 
 
-    component mimc = MiMCSponge(1, 220, 1);
-    mimc.ins[0] <== secret;
-    mimc.k <== assetId;
-    commitment === mimc.outs[0];
+    component poseidon = Poseidon(2);
+    poseidon.inputs[0] <== secret;
+    poseidon.inputs[1] <== assetId;
+    commitment === poseidon.out;
 }
 
 

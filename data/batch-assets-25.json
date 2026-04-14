@@ -1,0 +1,29 @@
+{
+  "assets": [
+    { "assetId": "7001", "secret": "123456789" },
+    { "assetId": "7002", "secret": "987654321" },
+    { "assetId": "7003", "secret": "111111111" },
+    { "assetId": "7004", "secret": "222222222" },
+    { "assetId": "7005", "secret": "333333333" },
+    { "assetId": "7006", "secret": "444444444" },
+    { "assetId": "7007", "secret": "555555555" },
+    { "assetId": "7008", "secret": "666666666" },
+    { "assetId": "7009", "secret": "777777777" },
+    { "assetId": "7010", "secret": "888888888" },
+    { "assetId": "7011", "secret": "999999999" },
+    { "assetId": "7012", "secret": "101010101" },
+    { "assetId": "7013", "secret": "121212121" },
+    { "assetId": "7014", "secret": "131313131" },
+    { "assetId": "7015", "secret": "141414141" },
+    { "assetId": "7016", "secret": "151515151" },
+    { "assetId": "7017", "secret": "161616161" },
+    { "assetId": "7018", "secret": "171717171" },
+    { "assetId": "7019", "secret": "181818181" },
+    { "assetId": "7020", "secret": "191919191" },
+    { "assetId": "7021", "secret": "202020202" },
+    { "assetId": "7022", "secret": "212121212" },
+    { "assetId": "7023", "secret": "222323232" },
+    { "assetId": "7024", "secret": "242424242" },
+    { "assetId": "7025", "secret": "252525252" }
+  ]
+}

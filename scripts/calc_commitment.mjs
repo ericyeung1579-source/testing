@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { buildMimcSponge } from 'circomlibjs';
+import { buildPoseidon } from 'circomlibjs';
 
 
 const secret = process.argv[2];
@@ -8,7 +8,7 @@ if (!secret || !assetId) process.exit(1);
 
 
 (async () => {
-  const mimc = await buildMimcSponge();
-  const hash = mimc.multiHash([BigInt(secret)], BigInt(assetId));
-  console.log(mimc.F.toString(hash));
+  const poseidon = await buildPoseidon();
+  const hash = poseidon([BigInt(secret), BigInt(assetId)]);
+  console.log(poseidon.F.toString(hash));
 })();
