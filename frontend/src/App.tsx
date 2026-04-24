@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, TextField, Typography, Box, Container, List, ListItem, ListItemText, Paper } from '@mui/material';
+import { Button, TextField, Typography, Box, Container, List, ListItem, ListItemText, Paper, CircularProgress } from '@mui/material';
 import { ethers } from 'ethers';
 import { getRegistryContract, getTokenContract, getSigner } from './utils/web3';
 import { buildPoseidon } from 'circomlibjs';
@@ -11,7 +11,7 @@ interface Asset {
   commitment: string;
   registered: boolean;
   proven: boolean;
-  tokensMinted: string; // as ether string (e.g., "1000.0")
+  tokensMinted: string;
 }
 
 const parseContractError = (error: any): string => {
@@ -36,8 +36,8 @@ const App: React.FC = () => {
   const [newSecret, setNewSecret] = useState('');
   const [status, setStatus] = useState('');
   const [totalBalance, setTotalBalance] = useState('0');
+  const [loadingBatch, setLoadingBatch] = useState<'register' | 'prove' | null>(null);
 
-  // Load total balance whenever assets change (or after proofs)
   useEffect(() => {
     fetchTotalBalance();
   }, [assets]);
@@ -67,14 +67,12 @@ const App: React.FC = () => {
       setStatus('Enter secret and asset ID first!');
       return;
     }
-
     try {
       setStatus('Computing commitment...');
       const poseidon = await buildPoseidon();
       const hash = poseidon([BigInt(newSecret), BigInt(newAssetId)]);
       const commitmentStr = poseidon.F.toString(hash);
       
-      // Add new asset to list
       setAssets(prev => [...prev, {
         id: newAssetId,
         secret: newSecret,
@@ -93,13 +91,13 @@ const App: React.FC = () => {
     }
   };
 
+  // ---------- Single Asset Actions ----------
   const registerAsset = async (asset: Asset) => {
     try {
       const contract = await getRegistryContract();
       const tx = await contract.registerAsset(BigInt(asset.id), BigInt(asset.commitment));
       await tx.wait();
       
-      // Update asset registration status
       setAssets(prev => prev.map(a => 
         a.id === asset.id ? { ...a, registered: true } : a
       ));
@@ -111,35 +109,28 @@ const App: React.FC = () => {
   };
 
   const generateProof = async (asset: Asset): Promise<any> => {
-  setStatus(`Generating proof for asset ${asset.id}...`);
-  
-  const input = {
-    secret: asset.secret,
-    assetId: asset.id,
-    commitment: asset.commitment,
-    ownerPublicKey: "1"
-  };
-
-  console.log("Input:", input);
-
-  try {
-    const wasmPath = '/circuits/AssetOwnership.wasm';
-    const zkeyPath = '/circuits/AssetOwnership_0001.zkey';
-
-    // Use fullProve to generate proof directly
-    const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, wasmPath, zkeyPath);
-    console.log("Proof generated:", proof);
-    return { proof, publicSignals };
+    setStatus(`Generating proof for asset ${asset.id}...`);
+    const input = {
+      secret: asset.secret,
+      assetId: asset.id,
+      commitment: asset.commitment,
+      ownerPublicKey: "1"
+    };
+    try {
+      const wasmPath = '/circuits/AssetOwnership.wasm';
+      const zkeyPath = '/circuits/AssetOwnership_0001.zkey';
+      const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, wasmPath, zkeyPath);
+      console.log("Proof generated:", proof);
+      return { proof, publicSignals };
     } catch (error) {
-    console.error('Proof generation error:', error);
-    throw error;
+      console.error('Proof generation error:', error);
+      throw error;
     }
   };
 
   const submitProof = async (asset: Asset) => {
     try {
       const { proof, publicSignals } = await generateProof(asset);
-    
       const a = [BigInt(proof.pi_a[0]), BigInt(proof.pi_a[1])];
       const b = [
         [BigInt(proof.pi_b[0][1]), BigInt(proof.pi_b[0][0])],
@@ -148,20 +139,14 @@ const App: React.FC = () => {
       const c = [BigInt(proof.pi_c[0]), BigInt(proof.pi_c[1])];
 
       const contract = await getRegistryContract();
-      const tx = await contract.proveOwnership(
-        a, b, c, 
-        BigInt(publicSignals[0]), 
-        BigInt(publicSignals[1])
-      );
+      const tx = await contract.proveOwnership(a, b, c, BigInt(publicSignals[0]), BigInt(publicSignals[1]));
       await tx.wait();
 
-      // Mark as proven optimistically
       const tokensFormatted = ethers.formatEther(ethers.parseEther('1000'));
       setAssets(prev => prev.map(a =>
         a.id === asset.id ? { ...a, proven: true, tokensMinted: tokensFormatted } : a
       ));
       setStatus(`Proof submitted! Minted ${tokensFormatted} ASSET for asset ${asset.id}.`);
-    
       fetchTotalBalance();
     } catch (error: any) {
       console.error('Proof submission error:', error);
@@ -169,14 +154,102 @@ const App: React.FC = () => {
     }
   };
 
-  // Tokens per proof is fixed at 1000 ASSET by the contract
-  const refreshAssetTokens = () => {
-    const tokensFormatted = ethers.formatEther(ethers.parseEther('1000'));
-    const updated = assets.map((asset) =>
-      asset.proven ? { ...asset, tokensMinted: tokensFormatted } : asset
-    );
-    setAssets(updated);
+  // ---------- Batch Actions ----------
+  const registerAllAssets = async () => {
+    const unregistered = assets.filter(asset => !asset.registered);
+    if (unregistered.length === 0) {
+      setStatus('All assets already registered.');
+      return;
+    }
+
+    setLoadingBatch('register');
+    try {
+      const assetIds = unregistered.map(a => BigInt(a.id));
+      const commitments = unregistered.map(a => BigInt(a.commitment));
+
+      const contract = await getRegistryContract();
+      const tx = await contract.registerAssetsBatch(assetIds, commitments);
+      await tx.wait();
+
+      setAssets(prev => prev.map(asset => 
+        unregistered.some(u => u.id === asset.id) ? { ...asset, registered: true } : asset
+      ));
+      setStatus(`Successfully registered ${unregistered.length} assets.`);
+    } catch (error: any) {
+      console.error('Batch registration error:', error);
+      setStatus(`Batch registration failed: ${parseContractError(error)}`);
+    } finally {
+      setLoadingBatch(null);
+    }
   };
+
+  const proveAllAssets = async () => {
+    const toProve = assets.filter(asset => asset.registered && !asset.proven);
+    if (toProve.length === 0) {
+      setStatus('No assets left to prove (all already proven or not registered).');
+      return;
+    }
+
+    setLoadingBatch('prove');
+    setStatus(`Generating ${toProve.length} proofs... this may take a while.`);
+
+    try {
+      const proofsData = [];
+      for (const asset of toProve) {
+        const { proof, publicSignals } = await generateProof(asset);
+        const a = [BigInt(proof.pi_a[0]), BigInt(proof.pi_a[1])];
+        const b = [
+          [BigInt(proof.pi_b[0][1]), BigInt(proof.pi_b[0][0])],
+          [BigInt(proof.pi_b[1][1]), BigInt(proof.pi_b[1][0])]
+        ];
+        const c = [BigInt(proof.pi_c[0]), BigInt(proof.pi_c[1])];
+        // Use array format: [a, b, c, assetId, commitment]
+        proofsData.push([
+          a,
+          b,
+          c,
+          BigInt(publicSignals[0]), // assetId
+          BigInt(publicSignals[1])  // commitment
+        ]);
+      }
+
+      setStatus(`Submitting ${proofsData.length} proofs in batch transaction...`);
+      const contract = await getRegistryContract();
+      
+      // Estimate gas and add 30% buffer
+      const gasEstimate = await contract.proveOwnershipBatch.estimateGas(proofsData);
+      const gasLimit = (gasEstimate * BigInt(130)) / BigInt(100);
+      console.log(`Gas estimate: ${gasEstimate}, using limit: ${gasLimit}`);
+      
+      const tx = await contract.proveOwnershipBatch(proofsData, { gasLimit });
+      await tx.wait();
+
+      const tokensPerProof = ethers.parseEther('1000');
+      const totalMinted = tokensPerProof * BigInt(toProve.length);
+      setAssets(prev => prev.map(asset => 
+        toProve.some(p => p.id === asset.id) ? { ...asset, proven: true, tokensMinted: ethers.formatEther(tokensPerProof) } : asset
+      ));
+      setStatus(`Batch proof submitted! Minted ${ethers.formatEther(totalMinted)} ASSET total.`);
+      fetchTotalBalance();
+    } catch (error: any) {
+      console.error('Batch proof error:', error);
+      let errorMsg = parseContractError(error);
+      if (error.data) {
+        try {
+          const contract = await getRegistryContract();
+          const iface = contract.interface;
+          const decoded = iface.parseError(error.data);
+          if (decoded) errorMsg = `${decoded.name}: ${decoded.args?.toString()}`;
+        } catch (e) {}
+      }
+      setStatus(`Batch proof failed: ${errorMsg}`);
+    } finally {
+      setLoadingBatch(null);
+    }
+  };
+
+  const unregisteredCount = assets.filter(a => !a.registered).length;
+  const unprovenCount = assets.filter(a => a.registered && !a.proven).length;
 
   return (
     <Container maxWidth="md">
@@ -206,6 +279,26 @@ const App: React.FC = () => {
             <Button variant="contained" onClick={computeCommitment}>Add Asset</Button>
           </Box>
         </Paper>
+
+        {/* Batch Action Buttons */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={registerAllAssets}
+            disabled={loadingBatch !== null || unregisteredCount === 0}
+          >
+            {loadingBatch === 'register' ? <CircularProgress size={24} /> : `Register All (${unregisteredCount})`}
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={proveAllAssets}
+            disabled={loadingBatch !== null || unprovenCount === 0}
+          >
+            {loadingBatch === 'prove' ? <CircularProgress size={24} /> : `Prove All (${unprovenCount})`}
+          </Button>
+        </Box>
 
         {/* Assets List */}
         <Paper elevation={3} sx={{ p: 3, mt: 3 }}>
