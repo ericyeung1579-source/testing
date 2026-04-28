@@ -109,12 +109,12 @@ node validator.js   # uses first Hardhat account private key
 Terminal 5 – Validator #2:
 ```bash
 cd offchain
-node validator2.js 
+node validator2.js   # uses second Hardhat account private key
 ```
 Terminal 6 – Validator #3:
 ```bash
 cd offchain
-node validator3.js
+node validator3.js   # uses third Hardhat account private key
 ```
 Note: Private keys for the default Hardhat accounts can be found in the Hardhat node startup logs. Use the first three accounts.
 

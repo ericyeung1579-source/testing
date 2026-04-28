@@ -5,7 +5,7 @@ const fs = require("fs");
 const app = express();
 app.use(express.json());
 
-// Load deployed addresses from chain B (parent directory)
+// Load deployed addresses from chain B
 const chainBDeploy = JSON.parse(fs.readFileSync("../deployment-chainB.json"));
 const DEST_MINT_ADDRESS = chainBDeploy.destMint;
 const CHAIN_B_RPC = "http://127.0.0.1:8546";
@@ -16,22 +16,30 @@ const RELAYER_PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efca
 const providerB = new ethers.providers.JsonRpcProvider(CHAIN_B_RPC);
 const wallet = new ethers.Wallet(RELAYER_PRIVATE_KEY, providerB);
 
-// DestMint ABI
+// Updated ABI
 const destMintABI = [
-  "function mintWithSignatures(bytes32 messageHash, bytes[] calldata signatures, address recipient, uint256 amount) external"
+  "function mintWithSignatures(bytes32 lockId, uint256 assetId, uint256 amount, address recipient, uint256 nonce, uint256 sourceChainId, bytes[] calldata signatures) external"
 ];
 
 const destMint = new ethers.Contract(DEST_MINT_ADDRESS, destMintABI, wallet);
 
-// Pending signatures per messageHash
-const pending = new Map(); // messageHash -> { signatures: [], recipient, amount, lockId, submitted? }
-const THRESHOLD = 2; // must match what you set in DestMint (2 out of 3)
+const pending = new Map(); // messageHash -> { signatures, lockId, assetId, amount, recipient, nonce, sourceChainId, submitted }
+const THRESHOLD = 2;
 
 app.post("/signature", async (req, res) => {
   const { lockId, assetId, amount, recipient, nonce, sourceChainId, signature, validator, messageHash } = req.body;
 
   if (!pending.has(messageHash)) {
-    pending.set(messageHash, { signatures: [], recipient, amount, lockId, submitted: false });
+    pending.set(messageHash, {
+      signatures: [],
+      lockId,
+      assetId,
+      amount,
+      recipient,
+      nonce,
+      sourceChainId,
+      submitted: false
+    });
   }
 
   const entry = pending.get(messageHash);
@@ -46,15 +54,23 @@ app.post("/signature", async (req, res) => {
   if (entry.signatures.length >= THRESHOLD && !entry.submitted) {
     entry.submitted = true;
     const sigs = entry.signatures.map(s => s.signature);
-    console.log(`Relayer: threshold reached, submitting mint tx for ${recipient} amount ${amount}`);
+    console.log(`Relayer: threshold reached, submitting mint tx for ${entry.recipient} amount ${entry.amount}`);
     try {
-      const tx = await destMint.mintWithSignatures(messageHash, sigs, recipient, amount);
+      const tx = await destMint.mintWithSignatures(
+        entry.lockId,
+        BigInt(entry.assetId),
+        BigInt(entry.amount),
+        entry.recipient,
+        BigInt(entry.nonce),
+        BigInt(entry.sourceChainId),
+        sigs
+      );
       await tx.wait();
       console.log(`Relayer: minted successfully! Tx hash: ${tx.hash}`);
       pending.delete(messageHash);
     } catch (err) {
       console.error(`Relayer: mint failed:`, err.message);
-      entry.submitted = false; // allow retry
+      entry.submitted = false;
     }
   }
 

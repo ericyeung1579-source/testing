@@ -86,11 +86,16 @@ sourceLock.on("Locked", async (lockId, assetId, amount, recipientOnDest, nonce, 
     return;
   }
 
-  // Build message hash and sign
+  // ----- FIX: Include destination contract address in the signed hash -----
+  const chainBDeploy = JSON.parse(fs.readFileSync("../deployment-chainB.json"));
+  const destMintAddress = chainBDeploy.destMint;
+
   const messageHash = ethers.utils.solidityKeccak256(
-    ["bytes32", "uint256", "uint256", "address", "uint256", "uint256"],
-    [lockId, assetId, amount, recipientOnDest, nonce, sourceChainId]
+    ["bytes32", "uint256", "uint256", "address", "uint256", "uint256", "address"],
+    [lockId, assetId, amount, recipientOnDest, nonce, sourceChainId, destMintAddress]
   );
+  // -----------------------------------------------------------------------
+
   const signature = await wallet.signMessage(ethers.utils.arrayify(messageHash));
   console.log(`[Validator ${wallet.address.slice(0,6)}] Signature: ${signature.slice(0,10)}...`);
 
