@@ -29,9 +29,9 @@ This repository contains the implementation of a privacy‑preserving asset toke
 │ └── test-crosschain.ts
 ├── offchain/ # Off‑chain components
 │ ├── relayer.js # Signature aggregator
-│ ├── validator.js         # Validator #1 (first Hardhat account)
-│ ├── validator2.js        # Validator #2 (second Hardhat account)
-│ ├── validator3.js        # Validator #3 (third Hardhat account)
+│ ├── validator.js # Validator #1 (first Hardhat account)
+│ ├── validator2.js # Validator #2 (second Hardhat account)
+│ ├── validator3.js # Validator #3 (third Hardhat account)
 │ └── package.json # Dependencies (ethers, snarkjs, axios, express)
 ├── hardhat.config.ts # Hardhat configuration (two local chains)
 └── README.md
@@ -41,8 +41,9 @@ This repository contains the implementation of a privacy‑preserving asset toke
 
 - Node.js (v18 or higher)
 - npm or yarn
+- snarkjs (install globally: `npm install -g snarkjs`)
 
-Note: Hardhat and Snarkjs are used locally via npx. No global installation is required.
+> Hardhat is used locally via `npx` and does not require global installation.
 
 ## Setup
 
