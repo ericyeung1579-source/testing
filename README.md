@@ -29,7 +29,9 @@ This repository contains the implementation of a privacy‑preserving asset toke
 │ └── test-crosschain.ts
 ├── offchain/ # Off‑chain components
 │ ├── relayer.js # Signature aggregator
-│ ├── validator.js # Validator script (copy for 3 validators)
+│ ├── validator.js         # Validator #1 (first Hardhat account)
+│ ├── validator2.js        # Validator #2 (second Hardhat account)
+│ ├── validator3.js        # Validator #3 (third Hardhat account)
 │ └── package.json # Dependencies (ethers, snarkjs, axios, express)
 ├── hardhat.config.ts # Hardhat configuration (two local chains)
 └── README.md
@@ -39,8 +41,8 @@ This repository contains the implementation of a privacy‑preserving asset toke
 
 - Node.js (v18 or higher)
 - npm or yarn
-- Hardhat
-- Snarkjs (install globally: `npm install -g snarkjs`)
+
+Note: Hardhat and Snarkjs are used locally via npx. No global installation is required.
 
 ## Setup
 
@@ -68,12 +70,10 @@ cd ..
 npx hardhat compile
 ```
 
-5. **Generate the ZK proof (if not already present)**:
-```bash
-powershell scripts/2-prove/generate_proof.ps1 42 123456789   # Windows, Only for demo: Asset ID:42 Secret:123456789
-```
+All necessary proof files (circuit, proving key, verification key) are already included in the repository. No additional proof generation step is required.
 
 **Running the Cross‑Chain Bridge (Local Testnet)**
+Ensure in the correct directory: testing.
 
 **Step 1: Start two Hardhat nodes (two terminals)**
 Terminal 1 – Chain A (source): 
