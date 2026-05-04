@@ -94,6 +94,7 @@ Open http://localhost:3000.
 After a successful proof, you automatically receive 1000 ASSET tokens per asset (minted only once per asset).
 
 ## Architecture
+```
 ┌─────────────────────────────────────────────────────────┐
 │             REACT FRONTEND (Direct to Hardhat)          │
 │              ethers.js + snarkjs + circomlibjs          │
@@ -109,7 +110,7 @@ After a successful proof, you automatically receive 1000 ASSET tokens per asset 
 │                 SMART CONTRACTS (Solidity)               │
 │  PrivateAssetRegistry.sol + AssetToken.sol + Verifier.sol│
 └─────────────────────────────────────────────────────────┘
-
+```
 Optional REST API Server
 An Express API server (scripts/api/server.mjs) is also provided for applications that prefer REST over direct RPC. See the API Reference section.
 
