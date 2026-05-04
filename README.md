@@ -1,111 +1,119 @@
-# Private Asset Registry - Zero-Knowledge Proof System with Batch Operations
+# Private Asset Registry - Zero-Knowledge Proof System
 
-A **complete zero-knowledge (ZK) proof system** for private asset ownership verification with batch processing capabilities. Built with Hardhat, Circom, snarkjs, Solidity, and Express API.
+A **complete zero-knowledge (ZK) proof system** for private asset ownership verification with batch registration and batch proof submission. Built with Hardhat, Circom, snarkjs, Solidity, Express API, and React.
 
 ---
 
-## 🚀 Quick Start (2 Minutes)
+## 🚀 Quick Start – React Frontend (User‑Tested Workflow)
 
-### Start Backend
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+- Circom 2.2.x ([Install](https://docs.circom.io/getting-started/installation/))
+- Snarkjs (global) – `npm install -g snarkjs`
+- PowerShell (Windows) or bash (Linux/macOS)
+
+### Start the System Together with Frontend
+
+### 1. Clone and Install Dependencies (First time only)
 ```bash
-# Terminal 1: Start blockchain node
+git clone <repo-url>
+cd <repo-folder>
+npm install
+cd frontend
+npm install --legacy-peer-deps
+cd ..
+```
+
+### 2. Compile Circuit & Generate ZK Keys (First time only)
+Windows (PowerShell):
+```powershell
+.\scripts\demo.ps1
+```
+
+Linux/macOS (manual):
+```bash
+# Compile circuit
+circom circuits/AssetOwnership.circom --r1cs --wasm -o circuits -l node_modules
+
+# Powers of Tau
+snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
+snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="demo" -v
+snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v
+
+# Groth16 setup
+snarkjs groth16 setup circuits/AssetOwnership.r1cs pot12_final.ptau circuits/AssetOwnership_0000.zkey
+snarkjs zkey contribute circuits/AssetOwnership_0000.zkey circuits/AssetOwnership_0001.zkey --name="demo" -v
+snarkjs zkey export verificationkey circuits/AssetOwnership_0001.zkey circuits/verification_key.json
+snarkjs zkey export solidityverifier circuits/AssetOwnership_0001.zkey contracts/Verifier.sol
+```
+
+### 3 Copy ZK Artifacts to Frontend
+```bash
+# Copy .zkey to frontend
+copy circuits\AssetOwnership_0001.zkey frontend\public\circuits\        # Windows
+cp circuits/AssetOwnership_0001.zkey frontend/public/circuits/         # Linux/macOS
+
+# (The .wasm file is already in frontend/circuits)
+```
+
+### 4. Start Hardhat Node (Terminal 1)
+Ensure in the correct <repo-folder>
+```bash
 npx hardhat node
-
-# Terminal 2: Deploy contracts  
-npx hardhat run scripts/1-setup/deploy-contracts.ts --network localhost
-
-# Terminal 3: Start API server
-npm install cors express
-node scripts/api/server.mjs
 ```
 
-### Test Integration
+### 5. Deploy Contracts (Terminal 2)
+Ensure in the correct <repo-folder>
 ```bash
-# Terminal 4: Run tests
-node scripts/api/test-api.mjs
+npx hardhat run scripts/1-setup/deploy-contracts.ts --network localhost
+```
+This creates deployment-addresses.json in the project root. Copy it to the frontend:
+```bash
+copy deployment-addresses.json frontend\public\        # Windows
+cp deployment-addresses.json frontend/public/         # Linux/macOS
 ```
 
-### Call from Frontend
-```javascript
-// Register + Generate + Submit in one call
-fetch('http://localhost:3000/workflow', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    assets: [
-      { assetId: '1001', secret: 'secret1' },
-      { assetId: '1002', secret: 'secret2' }
-    ]
-  })
-})
-  .then(r => r.json())
-  .then(data => console.log(data))
+### 6. Start React Frontend (Terminal 2, after deploy)
+```bash
+cd frontend
+npm start
 ```
+Open http://localhost:3000.
 
----
+### Using the dApp
+1. Add assets – Enter an asset ID, enter or generate the Secret, click “Add Asset”.
 
-## 📋 System Overview
+2. Register All – Registers all unregistered assets in one batch transaction (gas saving).
 
-This project demonstrates a **privacy-preserving asset registry** where users can:
-- Prove ownership of assets **without revealing their secret**
-- Register **multiple assets in one transaction** (40% gas savings)
-- Generate **batch ZK proofs** for efficient verification
-- Automatically **mint tokens** upon successful proof verification
+3. Prove All – Generates ZK proofs for all registered but unproven assets, then submits them in one batch transaction.
 
-### Technology Stack
-- **Backend:** Node.js, Express, ethers.js v6
-- **Blockchain:** Solidity, Hardhat, Hardhat Node
-- **ZK:** Circom, snarkjs, Groth16
-- **API:** REST with CORS enabled
-- **Storage:** JSON files for batch proofs/metadata
+4. Individual buttons – Also supports per‑asset registration/proving.
 
----
+After a successful proof, you automatically receive 1000 ASSET tokens per asset (minted only once per asset).
 
-## 🏗️ Architecture
-
-### System Components
-
-```
+## Architecture
 ┌─────────────────────────────────────────────────────────┐
-│             FRONTEND (React/Vue/Next.js)                 │
-│              HTTP POST/GET (JSON)                        │
+│             REACT FRONTEND (Direct to Hardhat)          │
+│              ethers.js + snarkjs + circomlibjs          │
 └──────────────────────┬──────────────────────────────────┘
-                       │ localhost:3000
+                       │ HTTP (localhost:8545)
                        ▼
 ┌─────────────────────────────────────────────────────────┐
-│        EXPRESS API SERVER (scripts/api/server.mjs)       │
-│  ✓ /register   - Register multiple assets               │
-│  ✓ /generate   - Generate proofs                         │
-│  ✓ /submit     - Submit proofs to blockchain             │
-│  ✓ /workflow   - Full pipeline (register→generate→submit)│
+│                    HARDHAT NODE (local)                  │
 └──────────────────────┬──────────────────────────────────┘
                        │
                        ▼
 ┌─────────────────────────────────────────────────────────┐
-│     BATCH OPERATIONS API (Core Business Logic)           │
-│     - calculateCommitment(secret, assetId)               │
-│     - registerAssets(assets)                             │
-│     - generateProofs(assets)                             │
-│     - submitProofs(proofFile, publicFile)                │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────┐
-│        SMART CONTRACTS (Solidity + Groth16)              │
-│  PrivateAssetRegistry.sol                                │
-│  ├─ registerAssetsBatch()     - Register many at once    │
-│  ├─ proveOwnershipBatch()     - Verify many at once      │
-│  └─ Events for indexing                                  │
-│                                                          │
-│  AssetToken.sol (ERC20)                                  │
-│  └─ Auto-mint 1000 tokens per successful proof           │
-│                                                          │
-│  Verifier.sol (Groth16)                                  │
-│  └─ Verify elliptic curve pairings on-chain              │
+│                 SMART CONTRACTS (Solidity)               │
+│  PrivateAssetRegistry.sol + AssetToken.sol + Verifier.sol│
 └─────────────────────────────────────────────────────────┘
-```
 
-### Smart Contracts
+Optional REST API Server
+An Express API server (scripts/api/server.mjs) is also provided for applications that prefer REST over direct RPC. See the API Reference section.
+
+## Smart Contracts
 
 **`PrivateAssetRegistry.sol`** - Main Registry
 - `registerAsset()` - Register single asset
@@ -123,92 +131,74 @@ This project demonstrates a **privacy-preserving asset registry** where users ca
 - Verifies Groth16 zero-knowledge proofs on-chain
 - Uses elliptic curve pairings
 
-### ZK Circuit
+## ZK Circuit
 
 **`AssetOwnership.circom`**
 - Takes: secret, assetId, commitment
 - Uses: MiMC hash function for commitment verification
 - Proves: Asset ownership without revealing the secret
 
----
-
-## 📁 Project Structure
-
+## Project Overview
 ```
-├── contracts/
-│   ├── PrivateAssetRegistry.sol       # Main registry with auto-minting
-│   ├── AssetToken.sol                 # ERC20 reward token
-│   ├── Verifier.sol                   # Groth16 verifier
-│   └── Groth16Verifier.sol
-├── circuits/
-│   ├── AssetOwnership.circom          # ZK circuit definition
-│   └── AssetOwnership_js/             # Compiled circuit artifacts
-│       ├── witness_calculator.js
-│       ├── generate_witness.js
-│       └── *.zkey files
-│
+├── contracts/                     # Solidity contracts
+│   ├── PrivateAssetRegistry.sol
+│   ├── AssetToken.sol
+│   └── Verifier.sol
+├── circuits/                      # Circom circuit + generated artifacts
+│   ├── AssetOwnership.circom
+│   ├── AssetOwnership_js/         # Compiled .wasm, witness calculator
+│   └── *.zkey, *.ptau
+├── frontend/                      # React dApp
+│   ├── public/
+│   │   ├── circuits/              # .wasm and .zkey served to browser
+│   │   └── deployment-addresses.json
+│   ├── src/
+│   │   ├── utils/web3.ts          # Ethers setup, ABIs, helpers
+│   │   ├── App.tsx                # Main UI + proof logic
+│   │   └── types/                 # Type declarations
+│   └── package.json
 ├── scripts/
-│   ├── 1-setup/
-│   │   └── deploy-contracts.ts        # Deploy all contracts
-│   ├── 2-prove/
-│   │   ├── register-asset.ts          # Register single asset
-│   │   ├── prove-ownership.ts         # Prove single ownership
-│   │   ├── register-assets-batch.ts   # Register batch
-│   │   ├── prove-ownership-batch.ts   # Prove batch
-│   │   └── generate-proofs-batch.mjs  # Generate batch proofs
-│   ├── 3-full-demo/
-│   │   └── batch-workflow.ps1         # Full workflow automation
-│   ├── api/
-│   │   ├── server.mjs                 # Express REST API
-│   │   ├── BatchOperationsAPI.mjs     # Core business logic
-│   │   └── test-api.mjs               # 15 API tests
-│   └── utils/
-│       └── helpers.ts                 # Shared utilities
-│
-├── test/
-│   ├── unit/
-│   │   ├── Registry.test.ts
-│   │   └── Token.test.ts
-│   └── integration/
-│       ├── AssetTokenization.test.ts
-│       ├── TokenMinting.test.ts
-│       ├── BatchOperations.test.ts
-│       └── RegisterAndProve.test.ts
-│
-├── artifacts/
-│   └── (Compiled contract ABIs and bytecode)
-│
+│   ├── 1-setup/                   # Deployment script
+│   ├── 2-prove/                   # Proof generation and submission scripts
+│   ├── 3-full-demo/               # Demo automation
+│   ├── api/                       # Optional Express server (see API section)
+│   └── utils/                     # Helpers
+├── test/                          # Unit & integration tests
 ├── hardhat.config.ts
-├── tsconfig.json
-├── package.json
-├── deployment-addresses.json           # Contract addresses (auto-generated)
-├── batch-assets.example.json           # Template for batch assets
-└── README.md                           # This file
+├── deployment-addresses.json      # Auto‑generated contract addresses
+└── README.md
 ```
 
----
+## 📊 Performance Metrics (Batch vs Single)
 
-## 🎯 API Reference
+| Metric | Single (5 assets) | Batch (5 assets) | Savings |
+|--------|------------------|-----------------|---------|
+| **Transactions** | 5 | 1 | 80% |
+| **Gas Used** | ~1.55M | ~865k | 44% |
+| **Time** | ~290s | ~70s | 77% |
+| **Gas/Registration** | 60k | 36k | 40% |
+| **Gas/Proof** | 250k | 137.5k | 45% |
 
-### Base URL
+## API Reference (Optional REST Server)
+If you prefer REST over direct RPC, start the API server:
+```bash
+node scripts/api/server.mjs
 ```
-http://localhost:3000
-```
+Base URL: http://localhost:3000
 
 ### 1. Health Check
-```http
+http
 GET /health
-```
-**Response:**
-```json
+
+*Response:*
+json
 {
   "status": "ready",
   "timestamp": "2026-02-18T10:00:00.000Z"
 }
-```
 
 ### 2. Register Multiple Assets
-```http
+http
 POST /register
 Content-Type: application/json
 
@@ -218,9 +208,9 @@ Content-Type: application/json
     { "assetId": "1002", "secret": "secret2" }
   ]
 }
-```
-**Response:**
-```json
+
+*Response:*
+json
 {
   "status": "success",
   "action": "register",
@@ -232,10 +222,9 @@ Content-Type: application/json
     { "assetId": "1001", "commitment": "..." }
   ]
 }
-```
 
 ### 3. Generate Proofs
-```http
+http
 POST /generate
 Content-Type: application/json
 
@@ -245,9 +234,9 @@ Content-Type: application/json
     { "assetId": "1002", "secret": "secret2" }
   ]
 }
-```
-**Response:**
-```json
+
+*Response:*
+json
 {
   "status": "success",
   "action": "generate",
@@ -258,10 +247,10 @@ Content-Type: application/json
     { "assetId": "1001", "status": "generated" }
   ]
 }
-```
+
 
 ### 4. Submit Proofs
-```http
+http
 POST /submit
 Content-Type: application/json
 
@@ -269,11 +258,11 @@ Content-Type: application/json
   "proofFile": "/path/to/batch-proofs.json",
   "publicFile": "/path/to/batch-public.json"
 }
-```
-*Note: Both fields optional - uses defaults if not provided*
 
-**Response:**
-```json
+Note: Both fields optional - uses defaults if not provided
+
+*Response:*
+json
 {
   "status": "success",
   "action": "submit",
@@ -283,10 +272,9 @@ Content-Type: application/json
   "tokensMinted": "2000.0",
   "gasUsed": "412500"
 }
-```
 
 ### 5. Complete Workflow (Register → Generate → Submit)
-```http
+http
 POST /workflow
 Content-Type: application/json
 
@@ -296,9 +284,9 @@ Content-Type: application/json
     { "assetId": "1002", "secret": "secret2" }
   ]
 }
-```
-**Response:**
-```json
+
+*Response:*
+json
 {
   "status": "success",
   "workflow": "register-generate-submit",
@@ -308,241 +296,19 @@ Content-Type: application/json
     { "status": "success", "action": "submit", ... }
   ]
 }
-```
 
 ### Error Responses
 All endpoints return errors in consistent format:
-```json
+json
 {
   "status": "error",
   "action": "register",
   "error": "Assets must be a non-empty array"
 }
-```
 
----
-
-## 🔧 Setup Instructions
-
-### Prerequisites
-- Node.js 16+
-- npm or yarn
-- PowerShell (for Windows scripts) or bash (for Linux/Mac)
-
-### Installation
-
-```bash
-# Clone the repository
-cd demo2
-
-# Install dependencies
-npm install
-
-# Install API dependencies
-npm install cors express
-
-# Compile contracts
-npx hardhat compile
-
-# Compile circuits (ensure snarkjs and circom installed)
-# Follow circuit compilation guide in BATCH_GUIDE.md
-```
-
-### Environment Setup
-
-Create `.env` file (optional, uses defaults):
-```env
-PROVIDER_URL=http://127.0.0.1:8545
-REGISTRY_ADDRESS=0x...
-OUTPUT_DIR=circuits/batch-proofs
-CIRCUIT_PATH=circuits/AssetOwnership_js
-PORT=3000
-```
-
----
-
-## 🚀 Running the System
-
-### Option 1: Full Workflo (Recommended for First Time)
-```bash
-# Terminal 1: Start blockchain
-npx hardhat node
-
-# Terminal 2: Deploy and start API
-npx hardhat run scripts/1-setup/deploy-contracts.ts --network localhost && \
-node scripts/api/server.mjs
-```
-
-### Option 2: Individual Steps (For Learning)
-
-**Terminal 1: Start blockchain**
-```bash
-npx hardhat node
-```
-
-**Terminal 2: Deploy contracts**
-```bash
-npx hardhat run scripts/1-setup/deploy-contracts.ts --network localhost
-```
-
-**Terminal 3: Start API server**
-```bash
-node scripts/api/server.mjs
-```
-
-**Terminal 4: Test API**
-```bash
-node scripts/api/test-api.mjs
-```
-
-### Option 3: Batch Operations (PowerShell on Windows)
-```powershell
-.\scripts\3-full-demo\batch-workflow.ps1
-```
-
----
-
-## 📊 Performance Metrics
-
-| Metric | Single (5 assets) | Batch (5 assets) | Savings |
-|--------|------------------|-----------------|---------|
-| **Transactions** | 5 | 1 | 80% |
-| **Gas Used** | ~1.55M | ~865k | 44% |
-| **Time** | ~290s | ~70s | 77% |
-| **Gas/Registration** | 60k | 36k | 40% |
-| **Gas/Proof** | 250k | 137.5k | 45% |
-
----
-
-## 🧪 Testing
-
-```bash
-# Unit tests
-npx hardhat test test/unit/
-
-# Integration tests
-npx hardhat test test/integration/
-
-# API tests
-node scripts/api/test-api.mjs
-
-# All tests
-npx hardhat test
-```
-
----
-
-## 💻 Example: React Integration
-
-```javascript
-import { useState } from 'react';
-
-export default function BatchOps() {
-  const [assetCount, setAssetCount] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-
-  const execute = async () => {
-    setLoading(true);
-    setError(null);
-
-    // Generate assets array
-    const assets = [];
-    for (let i = 0; i < assetCount; i++) {
-      assets.push({
-        assetId: `${Date.now()}_${i}`,
-        secret: `secret_${Math.random()}`
-      });
-    }
-
-    try {
-      const response = await fetch('http://localhost:3000/workflow', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assets })
-      });
-
-      const data = await response.json();
-
-      if (data.status === 'error') {
-        setError(data.error);
-      } else {
-        setResult(data);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1>🔐 Batch Asset Operations</h1>
-      
-      <div>
-        <label>Number of Assets:</label>
-        <input
-          type="number"
-          min="1"
-          max="100"
-          value={assetCount}
-          onChange={(e) => setAssetCount(parseInt(e.target.value))}
-          disabled={loading}
-        />
-      </div>
-
-      <button 
-        onClick={execute} 
-        disabled={loading}
-        style={{ padding: '10px 20px', marginTop: '10px' }}
-      >
-        {loading ? 'Processing...' : 'Execute Workflow'}
-      </button>
-
-      {error && (
-        <div style={{ color: 'red', marginTop: '10px' }}>
-          ❌ Error: {error}
-        </div>
-      )}
-
-      {result && (
-        <div style={{ color: 'green', marginTop: '10px' }}>
-          <h2>✅ Success!</h2>
-          <p><strong>Status:</strong> {result.status}</p>
-          <p><strong>Tokens Minted:</strong> {result.steps?.[2]?.tokensMinted || 'N/A'}</p>
-          <p><strong>Total Gas Used:</strong> {result.steps?.[2]?.gasUsed || 'N/A'}</p>
-          <pre style={{ 
-            background: '#f0f0f0', 
-            padding: '10px', 
-            overflow: 'auto',
-            maxHeight: '300px'
-          }}>
-            {JSON.stringify(result, null, 2)}
-          </pre>
-        </div>
-      )}
-    </div>
-  );
-}
-```
-
----
-
-## 🔒 Security Features
-
-✅ **Input Validation** - All inputs validated server-side  
-✅ **Error Handling** - Clear, non-revealing error messages  
-✅ **No Secret Logging** - Sensitive data never exposed  
-✅ **Environment Variables** - Configuration externalized  
-✅ **CORS Configuration** - Restricted origins (configure as needed)  
-✅ **Atomic Operations** - Batch operations succeed/fail together  
-
----
+See scripts/api/test-api.mjs for a complete test suite.
 
 ## 🛠️ Troubleshooting
-
 ### "Cannot connect to API"
 - Ensure blockchain is running: `npx hardhat node`
 - Ensure API is running: `node scripts/api/server.mjs`
@@ -559,101 +325,48 @@ export default function BatchOps() {
 ### "Out of funds" error
 - Hardhat node provides unlimited funds to default accounts
 - Check using: `npx hardhat console --network localhost`
+### circom: command not found	
+- Install Circom from docs.circom.io
 
----
+### snarkjs: command not found 
+- npm install -g snarkjs
 
-## 📚 What You Have Now
+### Frontend can't load .wasm or .zkey 
+- Ensure both files are in frontend/public/circuits/
 
-### Batch Processing
-- ✅ Register multiple assets in 1 transaction
-- ✅ Generate proofs for all assets efficiently
-- ✅ Submit all proofs atomically
+### deployment-addresses.json not found 
+- Copy it from project root to frontend/public/
 
-### API Server
-- ✅ 6 REST endpoints
-- ✅ Dynamic parameter handling
-- ✅ CORS enabled for frontend communication
-- ✅ Comprehensive error handling
+### TypeScript error 130n 
+- Use BigInt(130) (already fixed in code)
 
-### Smart Contracts
-- ✅ `registerAssetsBatch()` with 40% gas savings
-- ✅ `proveOwnershipBatch()` with 45% gas savings
-- ✅ Auto-minting on proof verification
-- ✅ Original single-asset functions preserved
+## ✅What's Included
+✅ **Full zero-knowledge circuit** (Poseidon hash)
+✅ **Groth16 setup and Solidity verifier**
+✅ **Batch registration and batch proof submission** (smart contract level)
+✅ **React frontend with single & batch workflows**
+✅ **Token minting upon proof verification**
+✅ **TypeScript support**
+✅ **Optional REST API server**
+✅ **Unit and integration tests**
 
-### Documentation
-- ✅ Quick start guide
-- ✅ API reference with examples
-- ✅ React integration example
-- ✅ Architecture diagrams
-- ✅ Performance benchmarks
+## 🔒 Security Features
 
----
+✅ **Input Validation** - All inputs validated server-side  
+✅ **Error Handling** - Clear, non-revealing error messages  
+✅ **No Secret Logging** - Sensitive data never exposed  
+✅ **Environment Variables** - Configuration externalized  
+✅ **CORS Configuration** - Restricted origins (configure as needed)  
+✅ **Atomic Operations** - Batch operations succeed/fail together  
 
 ## 📖 Additional Resources
 
 - **Smart Contract Source:** `contracts/PrivateAssetRegistry.sol`
-- **API Source:** `scripts/api/server.mjs`, `scripts/api/BatchOperationsAPI.mjs`
+- **Frontend Logic** `frontend/src/App.tsx`, `frontend/src/utils/web3.ts`
+- **Deployment Script:** `scripts/1-setup/delopy-contracts.ts`
+- **API Server:** `scripts/api/server.mjs`, `scripts/api/BatchOperationsAPI.mjs`
 - **Tests:** `scripts/api/test-api.mjs`, `test/integration/BatchOperations.test.ts`
-- **Examples:** `batch-assets.example.json` for batch asset configuration
 
----
-
-## 🎓 Learning Path
-
-1. **Understanding (5 min)** → Read this README
-2. **Setup (5 min)** → Run `npx hardhat node` + API server
-3. **Testing (2 min)** → Run `node scripts/api/test-api.mjs`
-4. **Integration (30 min)** → Use React example above
-5. **Customization** → Modify batch sizes, add fields, extend endpoints
-
----
-
-## 📝 Configuration Files
-
-### `deployment-addresses.json` (Auto-generated)
-Contains deployed contract addresses:
-```json
-{
-  "verifier": "0x...",
-  "token": "0x...",
-  "registry": "0x..."
-}
-```
-
-### `batch-assets.example.json` (Template)
-Template for batch operations:
-```json
-{
-  "assets": [
-    { "assetId": "1001", "secret": "secret1" },
-    { "assetId": "1002", "secret": "secret2" }
-  ]
-}
-```
-
----
-
-## 🚀 Next Steps
-
-1. **Run the Quick Start** above
-2. **Test all 6 endpoints** using `node scripts/api/test-api.mjs`
-3. **Integrate with your frontend** using the React example
-4. **Monitor gas usage** and validate performance
-5. **Customize** batch sizes, asset fields, or endpoints as needed
-
----
-
-## 📧 Support
-
-For issues or questions:
-1. Check the troubleshooting section above
-2. Review test examples: `scripts/api/test-api.mjs`
-3. Check contract source: `contracts/PrivateAssetRegistry.sol`
-4. Review API implementation: `scripts/api/BatchOperationsAPI.mjs`
-
----
-
-**Status:** ✅ Ready for Production  
-**Last Updated:** March 2026  
-**Version:** 2.0 (with Batch Operations API)
+**Status:** ✅ Production ready (local Hardhat network)  
+**Last Updated:** May 2026  
+**Version:** 2.0 (React + Batch + Operations API)
