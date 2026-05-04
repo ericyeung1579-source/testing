@@ -343,23 +343,23 @@ See scripts/api/test-api.mjs for a complete test suite.
 
 ## ✅What's Included
 
-✅ **Full zero-knowledge circuit** (Poseidon hash)
-✅ **Groth16 setup and Solidity verifier**
-✅ **Batch registration and batch proof submission** (smart contract level)
-✅ **React frontend with single & batch workflows**
-✅ **Token minting upon proof verification**
-✅ **TypeScript support**
-✅ **Optional REST API server**
-✅ **Unit and integration tests**
+- ✅ **Full zero-knowledge circuit** (Poseidon hash)
+- ✅ **Groth16 setup and Solidity verifier**
+- ✅ **Batch registration and batch proof submission** (smart contract level)
+- ✅ **React frontend with single & batch workflows**
+- ✅ **Token minting upon proof verification**
+- ✅ **TypeScript support**
+- ✅ **Optional REST API server**
+- ✅ **Unit and integration tests**
 
 ## 🔒 Security Features
 
-✅ **Input Validation** - All inputs validated server-side  
-✅ **Error Handling** - Clear, non-revealing error messages  
-✅ **No Secret Logging** - Sensitive data never exposed  
-✅ **Environment Variables** - Configuration externalized  
-✅ **CORS Configuration** - Restricted origins (configure as needed)  
-✅ **Atomic Operations** - Batch operations succeed/fail together  
+- ✅ **Input Validation** - All inputs validated server-side
+- ✅ **Error Handling** - Clear, non-revealing error messages
+- ✅ **No Secret Logging** - Sensitive data never exposed
+- ✅ **Environment Variables** - Configuration externalized
+- ✅ **CORS Configuration** - Restricted origins (configure as needed)
+- ✅ **Atomic Operations** - Batch operations succeed/fail together
 
 ## 📖 Additional Resources
 
