@@ -342,6 +342,7 @@ See scripts/api/test-api.mjs for a complete test suite.
 - Use BigInt(130) (already fixed in code)
 
 ## ✅What's Included
+
 ✅ **Full zero-knowledge circuit** (Poseidon hash)
 ✅ **Groth16 setup and Solidity verifier**
 ✅ **Batch registration and batch proof submission** (smart contract level)
