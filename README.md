@@ -6,7 +6,7 @@ A **complete zero-knowledge (ZK) proof system** for private asset ownership veri
 
 **📦 FYP Final Submission Materials**  
 This repository contains two branches: `main` (ZK system with Frontend) and `Full_ZK_CrossChainBridge` (advanced cross‑chain bridge).  
-For a **single‑file download** containing **both branches**, please visit our [GitHub Releases](https://github.com/ericyeung1579source/testing/releases/tag/v1.1-final-fyp) and download.  
+For a **single‑file download** containing **both branches**, please visit our [GitHub Releases](https://github.com/ericyeung1579-source/testing/releases/tag/v1.1-final-fyp) and download.  
 After extraction, you will find a folder structure with separate README files for each component.
 
 ## 🚀 Quick Start – React Frontend (User‑Tested Workflow)
